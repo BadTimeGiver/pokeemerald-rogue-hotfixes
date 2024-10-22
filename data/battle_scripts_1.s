@@ -8775,6 +8775,15 @@ BattleScript_AbilityPopUp:
 	recordability BS_ABILITY_BATTLER
 	sethword sABILITY_OVERWRITE, 0
 	return
+	
+BattleScript_AbilityPopUpScripting:
+	.if B_ABILITY_POP_UP == TRUE
+	showabilitypopup BS_SCRIPTING
+	pause 40
+	.endif
+	recordability BS_SCRIPTING
+	sethword sABILITY_OVERWRITE, 0
+	return
 
 BattleScript_SpeedBoostActivates::
 	statbuffchange MOVE_EFFECT_AFFECTS_USER | STAT_CHANGE_ALLOW_PTR, BattleScript_SpeedBoostActivatesEnd
