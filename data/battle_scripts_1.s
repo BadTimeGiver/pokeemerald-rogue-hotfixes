@@ -10384,8 +10384,12 @@ BattleScript_MirrorHerbCopyStatChange::
 	printstring STRINGID_MIRRORHERBCOPIED
 	waitmessage B_WAIT_TIME_LONG
 	removeitem BS_SCRIPTING
-	call BattleScript_TotemVar_Ret
-	copybyte gBattlerAttacker, sSAVED_BATTLER	@ restore the original attacker just to be safe
+	playanimation BS_SCRIPTING, B_ANIM_STATS_CHANGE, sB_ANIM_ARG1
+BattleScript_MirrorHerbStartCopyStats:
+	copyfoesstatincrease BS_SCRIPTING, BattleScript_MirrorHerbStartReturn
+	statbuffchange STAT_CHANGE_ALLOW_PTR, BattleScript_MirrorHerbStartReturn
+	goto BattleScript_MirrorHerbStartCopyStats
+BattleScript_MirrorHerbStartReturn:
 	return
 
 BattleScript_OpportunistCopyStatChange::
@@ -11176,6 +11180,16 @@ BattleScript_BerserkGeneRet_End:
 	restoretarget
 	removeitem BS_SCRIPTING
 	end3
+
+BattleScript_BoosterEnergyEnd2::
+	playanimation BS_SCRIPTING, B_ANIM_HELD_ITEM_EFFECT, sB_ANIM_ARG1
+	call BattleScript_AbilityPopUpScripting
+	printstring STRINGID_BOOSTERENERGYACTIVATES
+	waitmessage B_WAIT_TIME_MED
+	printstring STRINGID_STATWASHEIGHTENED
+	waitmessage B_WAIT_TIME_MED
+	removeitem BS_SCRIPTING
+	end2
 
 BattleScript_EffectSnow::
 	attackcanceler

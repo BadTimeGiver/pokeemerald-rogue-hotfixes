@@ -758,6 +758,7 @@ struct BattleStruct
     u32 aiDelayFrames; // Number of frames it took to choose an action.
     u8 timesGotHit[NUM_BATTLE_SIDES][PARTY_SIZE];
     u8 enduredDamage;
+    u8 boosterEnergyActivates;
     u8 transformZeroToHero[NUM_BATTLE_SIDES];
     u8 intrepidSwordBoost[NUM_BATTLE_SIDES];
     u8 dauntlessShieldBoost[NUM_BATTLE_SIDES];

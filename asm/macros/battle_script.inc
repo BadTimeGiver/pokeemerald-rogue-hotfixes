@@ -1349,6 +1349,12 @@
 	.4byte \jumpInstr
 	.endm
 
+	.macro copyfoesstatincrease battler:req, failInstr:req
+	callnative BS_CopyFoesStatIncrease
+	.byte \battler
+	.4byte \failInstr
+	.endm
+
 	.macro itemcurestatus jumpInstr:req
 	callnative BS_ItemCureStatus
 	.4byte \jumpInstr
