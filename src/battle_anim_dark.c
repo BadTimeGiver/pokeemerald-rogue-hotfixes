@@ -11,6 +11,9 @@
 
 static void AnimUnusedBagSteal(struct Sprite *);
 static void AnimUnusedBagSteal_Step(struct Sprite *);
+static void AnimBite(struct Sprite *);
+static void AnimTearDrop(struct Sprite *);
+static void AnimClawSlash(struct Sprite *);
 static void AnimTask_AttackerFadeToInvisible_Step(u8);
 static void AnimTask_AttackerFadeFromInvisible_Step(u8);
 static void AnimBite_Step1(struct Sprite *);
@@ -20,7 +23,6 @@ static void AnimTask_MoveAttackerMementoShadow_Step(u8);
 static void AnimTask_MoveTargetMementoShadow_Step(u8);
 static void DoMementoShadowEffect(struct Task *);
 static void SetAllBattlersSpritePriority(u8);
-static void AnimPunishment(struct Sprite *sprite);
 static void AnimTask_MetallicShine_Step(u8);
 
 // Unused
@@ -131,7 +133,7 @@ static const union AffineAnimCmd sAffineAnim_TearDrop_1[] =
     AFFINEANIMCMD_END,
 };
 
-const union AffineAnimCmd *const gAffineAnims_TearDrop[] =
+static const union AffineAnimCmd *const sAffineAnims_TearDrop[] =
 {
     sAffineAnim_TearDrop_0,
     sAffineAnim_TearDrop_1,
@@ -144,7 +146,7 @@ const struct SpriteTemplate gTearDropSpriteTemplate =
     .oam = &gOamData_AffineNormal_ObjNormal_16x16,
     .anims = gDummySpriteAnimTable,
     .images = NULL,
-    .affineAnims = gAffineAnims_TearDrop,
+    .affineAnims = sAffineAnims_TearDrop,
     .callback = AnimTearDrop,
 };
 
@@ -168,7 +170,7 @@ static const union AnimCmd sAnim_ClawSlash_1[] =
     ANIMCMD_END,
 };
 
-const union AnimCmd *const gAnims_ClawSlash[] =
+static const union AnimCmd *const sAnims_ClawSlash[] =
 {
     sAnim_ClawSlash_0,
     sAnim_ClawSlash_1,
@@ -179,95 +181,11 @@ const struct SpriteTemplate gClawSlashSpriteTemplate =
     .tileTag = ANIM_TAG_CLAW_SLASH,
     .paletteTag = ANIM_TAG_CLAW_SLASH,
     .oam = &gOamData_AffineOff_ObjNormal_32x32,
-    .anims = gAnims_ClawSlash,
+    .anims = sAnims_ClawSlash,
     .images = NULL,
     .affineAnims = gDummySpriteAffineAnimTable,
     .callback = AnimClawSlash,
 };
-
-const union AffineAnimCmd gPunishmentImpactAffineAnimCmd_1[] =
-{
-    AFFINEANIMCMD_FRAME(0x0, 0x0, 0, 8),
-    AFFINEANIMCMD_END,
-};
-
-const union AffineAnimCmd gPunishmentImpactAffineAnimCmd_2[] =
-{
-    AFFINEANIMCMD_FRAME(0xD8, 0xD8, 0, 0),
-    AFFINEANIMCMD_FRAME(0x0, 0x0, 0, 8),
-    AFFINEANIMCMD_END,
-};
-
-const union AffineAnimCmd gPunishmentImpactAffineAnimCmd_3[] =
-{
-    AFFINEANIMCMD_FRAME(0xB0, 0xB0, 0, 0),
-    AFFINEANIMCMD_FRAME(0x0, 0x0, 0, 8),
-    AFFINEANIMCMD_END,
-};
-
-const union AffineAnimCmd gPunishmentImpactAffineAnimCmd_4[] =
-{
-    AFFINEANIMCMD_FRAME(0x80, 0x80, 0, 0),
-    AFFINEANIMCMD_FRAME(0x0, 0x0, 0, 8),
-    AFFINEANIMCMD_END,
-};
-
-const union AffineAnimCmd *const gPunishmentImpactAffineAnim[] =
-{
-    gPunishmentImpactAffineAnimCmd_1,
-    gPunishmentImpactAffineAnimCmd_2,
-    gPunishmentImpactAffineAnimCmd_3,
-    gPunishmentImpactAffineAnimCmd_4,
-};
-
-const union AnimCmd gPunishmentAnimCmd[] =
-{
-    ANIMCMD_FRAME(0, 4),
-    ANIMCMD_FRAME(16, 4),
-    ANIMCMD_FRAME(32, 4),
-    ANIMCMD_FRAME(48, 4),
-    ANIMCMD_FRAME(64, 4),
-    ANIMCMD_END,
-};
-
-const union AnimCmd *const gPunishmentAnim[] =
-{
-    gPunishmentAnimCmd,
-};
-
-const struct SpriteTemplate gPunishmentSpriteTemplate =
-{
-    .tileTag = ANIM_TAG_SCRATCH,
-    .paletteTag = ANIM_TAG_POISON_BUBBLE,
-    .oam = &gOamData_AffineNormal_ObjNormal_32x32,
-    .anims = gPunishmentAnim,
-    .images = NULL,
-    .affineAnims = gDummySpriteAffineAnimTable,
-    .callback = AnimSpriteOnMonPos,
-};
-
-const struct SpriteTemplate gPunishmentImpactSpriteTemplate =
-{
-    .tileTag = ANIM_TAG_IMPACT,
-    .paletteTag = ANIM_TAG_POISON_BUBBLE,
-    .oam = &gOamData_AffineNormal_ObjNormal_32x32,
-    .anims = gDummySpriteAnimTable,
-    .images = NULL,
-    .affineAnims = gPunishmentImpactAffineAnim,
-    .callback = AnimPunishment,
-};
-
-static void AnimPunishment(struct Sprite *sprite)
-{
-    StartSpriteAffineAnim(sprite, gBattleAnimArgs[3]);
-    if (gBattleAnimArgs[2] == 0)
-        InitSpritePosToAnimAttacker(sprite, 1);
-    else
-        InitSpritePosToAnimTarget(sprite, TRUE);
-
-    sprite->callback = RunStoredCallbackWhenAffineAnimEnds;
-    StoreSpriteCallbackInData6(sprite, DestroyAnimSprite);
-}
 
 void AnimTask_AttackerFadeToInvisible(u8 taskId)
 {
@@ -394,7 +312,7 @@ static void AnimUnusedBagSteal_Step(struct Sprite *sprite)
 }
 
 // Move sprite inward for Bite/Crunch and Clamp
-void AnimBite(struct Sprite *sprite)
+static void AnimBite(struct Sprite *sprite)
 {
     sprite->x += gBattleAnimArgs[0];
     sprite->y += gBattleAnimArgs[1];
@@ -426,7 +344,7 @@ static void AnimBite_Step2(struct Sprite *sprite)
 }
 
 // Launches a tear drop away from the battler. Used by Fake Tears
-void AnimTearDrop(struct Sprite *sprite)
+static void AnimTearDrop(struct Sprite *sprite)
 {
     u8 battler;
     s8 xOffset;
@@ -878,7 +796,7 @@ void AnimTask_MementoHandleBg(u8 taskId)
 }
 
 // Animates a deep slash from a claw. Used by Metal Claw, Dragon Claw, and Crush Claw
-void AnimClawSlash(struct Sprite *sprite)
+static void AnimClawSlash(struct Sprite *sprite)
 {
     sprite->x += gBattleAnimArgs[0];
     sprite->y += gBattleAnimArgs[1];
