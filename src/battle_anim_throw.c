@@ -22,13 +22,10 @@
 #include "constants/songs.h"
 #include "constants/rgb.h"
 
-#include "rogue_controller.h"
-#include "rogue_safari.h"
-
 // iwram
-u32 gMonShrinkDuration;
-u16 gMonShrinkDelta;
-u16 gMonShrinkDistance;
+COMMON_DATA u32 gMonShrinkDuration = 0;
+COMMON_DATA u16 gMonShrinkDelta = 0;
+COMMON_DATA u16 gMonShrinkDistance = 0;
 
 enum {
     BALL_ROLL_1,
@@ -188,7 +185,6 @@ static const struct CompressedSpriteSheet sBallParticleSpriteSheets[] =
     [BALL_PARK]     = {gBattleAnimSpriteGfx_Particles,      0x100, TAG_PARTICLES_PARKBALL},
     [BALL_BEAST]    = {gBattleAnimSpriteGfx_Particles,      0x100, TAG_PARTICLES_BEASTBALL},
     [BALL_CHERISH]  = {gBattleAnimSpriteGfx_Particles2,     0x100, TAG_PARTICLES_CHERISHBALL},
-    [BALL_ROGUE]    = {gBattleAnimSpriteGfx_Particles,      0x100, TAG_PARTICLES_MASTERBALL},
 };
 
 static const struct CompressedSpritePalette sBallParticlePalettes[] =
@@ -220,7 +216,6 @@ static const struct CompressedSpritePalette sBallParticlePalettes[] =
     [BALL_PARK]     = {gBattleAnimSpritePal_CircleImpact,   TAG_PARTICLES_PARKBALL},
     [BALL_BEAST]    = {gBattleAnimSpritePal_CircleImpact,   TAG_PARTICLES_BEASTBALL},
     [BALL_CHERISH]  = {gBattleAnimSpritePal_Particles2,     TAG_PARTICLES_CHERISHBALL},
-    [BALL_ROGUE]    = {gBattleAnimSpritePal_CircleImpact,   TAG_PARTICLES_MASTERBALL},
 };
 
 static const union AnimCmd sAnim_RegularBall[] =
@@ -304,7 +299,6 @@ static const u8 sBallParticleAnimNums[POKEBALL_COUNT] =
     [BALL_PARK]    = 5,
     [BALL_BEAST]   = 5,
     [BALL_CHERISH] = 0,
-    [BALL_ROGUE]   = 1,
 };
 
 static const TaskFunc sBallParticleAnimationFuncs[POKEBALL_COUNT] =
@@ -337,7 +331,6 @@ static const TaskFunc sBallParticleAnimationFuncs[POKEBALL_COUNT] =
     [BALL_PARK]    = UltraBallOpenParticleAnimation,
     [BALL_BEAST]   = UltraBallOpenParticleAnimation,
     [BALL_CHERISH] = MasterBallOpenParticleAnimation,
-    [BALL_ROGUE]   = MasterBallOpenParticleAnimation,
 };
 
 static const struct SpriteTemplate sBallParticleSpriteTemplates[POKEBALL_COUNT] =
@@ -585,15 +578,6 @@ static const struct SpriteTemplate sBallParticleSpriteTemplates[POKEBALL_COUNT] 
         .affineAnims = gDummySpriteAffineAnimTable,
         .callback = SpriteCallbackDummy,
     },
-    [BALL_ROGUE] = {
-        .tileTag = TAG_PARTICLES_MASTERBALL,
-        .paletteTag = TAG_PARTICLES_MASTERBALL,
-        .oam = &gOamData_AffineOff_ObjNormal_8x8,
-        .anims = sAnims_BallParticles,
-        .images = NULL,
-        .affineAnims = gDummySpriteAffineAnimTable,
-        .callback = SpriteCallbackDummy,
-    },
 };
 
 const u16 gBallOpenFadeColors[] =
@@ -626,7 +610,6 @@ const u16 gBallOpenFadeColors[] =
     [BALL_PARK] = RGB(31, 31, 15),
     [BALL_BEAST] = RGB(31, 31, 15),
     [BALL_CHERISH] = RGB(25, 4, 3),
-    [BALL_ROGUE] = RGB(8, 8, 31),
 };
 
 const struct SpriteTemplate gPokeblockSpriteTemplate =
@@ -842,9 +825,6 @@ static void AnimTask_FlashHealthboxOnLevelUp_Step(u8 taskId)
     u8 paletteNum;
     u32 paletteOffset, colorOffset;
 
-    u16 scale1 = Rogue_UseFastLevelUpAnim() ? 8 : 16;
-    u16 scale2 = Rogue_UseFastLevelUpAnim() ? 2 : 1;
-
     gTasks[taskId].data[0]++;
     if (gTasks[taskId].data[0]++ >= gTasks[taskId].data[11])
     {
@@ -855,12 +835,12 @@ static void AnimTask_FlashHealthboxOnLevelUp_Step(u8 taskId)
         {
         case 0:
             gTasks[taskId].data[2] += 2;
-            if (gTasks[taskId].data[2] > scale1)
-                gTasks[taskId].data[2] = scale1;
+            if (gTasks[taskId].data[2] > 16)
+                gTasks[taskId].data[2] = 16;
 
             paletteOffset = OBJ_PLTT_ID(paletteNum);
-            BlendPalette(paletteOffset + colorOffset, 1, gTasks[taskId].data[2] * scale2, RGB(20, 27, 31));
-            if (gTasks[taskId].data[2] == scale1)
+            BlendPalette(paletteOffset + colorOffset, 1, gTasks[taskId].data[2], RGB(20, 27, 31));
+            if (gTasks[taskId].data[2] == 16)
                 gTasks[taskId].data[1]++;
             break;
         case 1:
@@ -869,7 +849,7 @@ static void AnimTask_FlashHealthboxOnLevelUp_Step(u8 taskId)
                 gTasks[taskId].data[2] = 0;
 
             paletteOffset = OBJ_PLTT_ID(paletteNum);
-            BlendPalette(paletteOffset + colorOffset, 1, gTasks[taskId].data[2] * scale2, RGB(20, 27, 31));
+            BlendPalette(paletteOffset + colorOffset, 1, gTasks[taskId].data[2], RGB(20, 27, 31));
             if (gTasks[taskId].data[2] == 0)
                 DestroyAnimVisualTask(taskId);
             break;
@@ -1021,8 +1001,6 @@ u8 ItemIdToBallId(u16 ballItem)
         return BALL_BEAST;
     case ITEM_CHERISH_BALL:
         return BALL_CHERISH;
-    case ITEM_ROGUE_BALL:
-        return BALL_ROGUE;
     default:
         return BALL_POKE;
     }
@@ -1503,13 +1481,7 @@ static void SpriteCB_Ball_Wobble_Step(struct Sprite *sprite)
     case BALL_NEXT_MOVE:
         SHAKE_INC(sprite->sState);
         shakes = SHAKES(sprite->sState);
-
-        if(Rogue_UseSafariBattle())
-        {
-            sprite->affineAnimPaused = TRUE;
-            sprite->callback = SpriteCB_Ball_Capture;
-        }
-        else if (IsCriticalCapture())
+        if (IsCriticalCapture())
         {
             if (gBattleSpritesDataPtr->animationData->criticalCaptureSuccess)
             {
@@ -2512,17 +2484,14 @@ void TryShinyAnimation(u8 battler, struct Pokemon *mon)
     u8 taskCirc, taskDgnl;
     struct Pokemon* illusionMon;
 
-    isShiny = FALSE;
+    isShiny = GetMonData(mon, MON_DATA_IS_SHINY);
     gBattleSpritesDataPtr->healthBoxesData[battler].triedShinyMonAnim = TRUE;
     illusionMon = GetIllusionMonPtr(battler);
     if (illusionMon != NULL)
         mon = illusionMon;
 
-
     if (IsBattlerSpriteVisible(battler) && IsValidForBattle(mon))
     {
-        isShiny = GetMonData(mon, MON_DATA_IS_SHINY);
-
         if (isShiny)
         {
             if (GetSpriteTileStartByTag(ANIM_TAG_GOLD_STARS) == 0xFFFF)
