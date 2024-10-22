@@ -7632,6 +7632,23 @@ u8 ItemBattleEffects(u8 caseID, u32 battler, bool32 moveTurn)
                 effect = ITEM_STATS_CHANGE;
                 break;
             }
+            case HOLD_EFFECT_MIRROR_HERB:
+                effect = TryConsumeMirrorHerb(battler, TRUE);
+                break;
+            case HOLD_EFFECT_BOOSTER_ENERGY:
+                if (!(gBattleStruct->boosterEnergyActivates & gBitTable[battler])
+                 && !(gBattleMons[battler].status2 & STATUS2_TRANSFORMED)
+                 && (((GetBattlerAbility(battler) == ABILITY_PROTOSYNTHESIS) && !((gBattleWeather & B_WEATHER_SUN) && WEATHER_HAS_EFFECT))
+                  || ((GetBattlerAbility(battler) == ABILITY_QUARK_DRIVE) && !(gFieldStatuses & STATUS_FIELD_ELECTRIC_TERRAIN))))
+                {
+                    PREPARE_STAT_BUFFER(gBattleTextBuff1, GetHighestStatId(battler));
+                    gBattleScripting.battler = battler;
+                    gBattleStruct->boosterEnergyActivates |= gBitTable[battler];
+                    BattleScriptExecute(BattleScript_BoosterEnergyEnd2);
+                    effect = ITEM_EFFECT_OTHER;
+                }
+                break;
+            }
             if (effect != 0)
             {
                 gSpecialStatuses[battler].switchInItemDone = TRUE;
@@ -11075,7 +11092,9 @@ bool32 CanBattlerGetOrLoseItem(u32 battler, u16 itemId)
         return FALSE;
     else if (holdEffect == HOLD_EFFECT_Z_CRYSTAL)
         return FALSE;
-    // Cannot lose item when behind sub
+    else if (holdEffect == HOLD_EFFECT_BOOSTER_ENERGY
+         && (gSpeciesInfo[gBattleMons[gBattlerAttacker].species].isParadox || gSpeciesInfo[gBattleMons[gBattlerTarget].species].isParadox))
+        return FALSE;
     else if(gBattleMons[battler].status2 & STATUS2_SUBSTITUTE)
         return FALSE;
     else
